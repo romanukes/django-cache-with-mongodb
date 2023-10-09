@@ -17,8 +17,8 @@ import functools
 import re
 from datetime import timedelta
 
-import pymongo
 import bson
+import pymongo
 from django.conf import settings
 from django.core.cache.backends.base import DEFAULT_TIMEOUT, BaseCache
 from django.core.exceptions import ImproperlyConfigured
@@ -155,8 +155,10 @@ class MongoDBCache(BaseCache):
             try:
                 coll.update_one(
                     {"key": key},
-                    {"$set": {"data": value, "expires": expires, "last_change": now}},
-                    {"$unset": {"encoded_data": ""}},
+                    {
+                        "$set": {"data": value, "expires": expires, "last_change": now},
+                        "$unset": {"encoded_data": ""},
+                    },
                     upsert=True,
                 )
             except bson.errors.InvalidDocument:
@@ -164,8 +166,14 @@ class MongoDBCache(BaseCache):
                 encoded = base64.encodebytes(pickled).strip()
                 coll.update_one(
                     {"key": key},
-                    {"$set": {"encoded_data": encoded, "expires": expires, "last_change": now}},
-                    {"$unset": {"data": ""}},
+                    {
+                        "$set": {
+                            "encoded_data": encoded,
+                            "expires": expires,
+                            "last_change": now,
+                        },
+                        "$unset": {"data": ""},
+                    },
                     upsert=True,
                 )
         except (OperationFailure, ExecutionTimeout):
@@ -287,13 +295,15 @@ class MongoDBCache(BaseCache):
         try:
             new_document = coll.find_one_and_update(
                 {"key": key},
-                {'$inc': {"data": delta}},
-                {"$set": {"last_change": now}},
-                return_document=pymongo.ReturnDocument.AFTER
+                {
+                    "$inc": {"data": delta},
+                    "$set": {"last_change": now},
+                },
+                return_document=pymongo.ReturnDocument.AFTER,
             )
             if new_document is None:
                 raise ValueError("Key %r not found" % key)
-            return new_document['data']
+            return new_document["data"]
         except (OperationFailure, ExecutionTimeout):
             return False
 
